@@ -4,10 +4,10 @@ from flask import Flask
 from threading import Thread
 from groq import Groq
 
-# --- আপনার তথ্য ---
+# --- CONFIGURATION ---
 BOT_TOKEN = "8402821120:AAG-x_wPyEDF5P9P0Dbw_LckXY67UX_axBM"
 GROQ_API_KEY = "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"
-OWNER_ID = 7819937011  # শেখ সাব্বির
+OWNER_ID = 7819937011
 
 bot = telebot.TeleBot(BOT_TOKEN)
 client = Groq(api_key=GROQ_API_KEY)
@@ -15,25 +15,51 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Predator AI is active and online!"
+    return "Predator AI is Active!"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
 
-# AI-এর পরিচয় এবং কাজের ইনস্ট্রাকশন
-SYSTEM_PROMPT = (
-    "You are 'Predator AI', a highly advanced Cyber Security Expert. "
-    "You were developed by Sheikh Sabbir. You assist him in security research, "
-    "penetration testing, and bug bounty hunting. Answer in Bengali or English as requested. "
-    "If anyone asks who created you, proudly say: 'I am a Cyber Security Expert AI, developed by Sheikh Sabbir.'"
-)
+# System Prompt
+SYS_PROMPT = "You are 'Predator AI', a Cyber Security Expert developed by Sheikh Sabbir. Help with penetration testing. Answer in Bengali/English."
 
-# --- COMMANDS ---
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def welcome(message):
     if message.from_user.id == OWNER_ID:
-        welcome_text = (
-            "🔥 **Predator AI Activated** 🔥\n"
+        text = "🔥 Predator AI Activated 🔥\nDeveloped by Sheikh Sabbir.\nCommands: /start, /help, /status"
+        bot.reply_to(message, text)
+    else:
+        bot.reply_to(message, "❌ Unauthorized.")
+
+@bot.message_handler(commands=['help'])
+def help_cmd(message):
+    bot.reply_to(message, "🛠 Ask me anything about Cyber Security.")
+
+@bot.message_handler(commands=['status'])
+def status_cmd(message):
+    bot.reply_to(message, "✅ System is Operational.")
+
+@bot.message_handler(func=lambda message: True)
+def ai_chat(message):
+    if message.from_user.id != OWNER_ID:
+        return
+    try:
+        chat = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": SYS_PROMPT},
+                {"role": "user", "content": message.text}
+            ],
+            model="llama3-8b-8192",
+        )
+        bot.reply_to(message, chat.choices[0].message.content)
+    except Exception as e:
+        bot.reply_to(message, f"❌ API Error: {str(e)}")
+
+if __name__ == "__main__":
+    t = Thread(target=run)
+    t.start()
+    print("Bot starting...")
+    bot.infinity_polling()
             "----------------------------\n"
             "I am a Cyber Security Expert AI, developed by Sheikh Sabbir.\n"
             "I am here to assist with Penetration Testing and Security Analysis.\n\n"
