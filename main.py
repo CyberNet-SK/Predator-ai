@@ -1,14 +1,13 @@
 import os
 import telebot
-import requests
 from flask import Flask
 from threading import Thread
 from groq import Groq
 
-# --- আপনার তথ্য ---
+# --- Configuration ---
 BOT_TOKEN = "8402821120:AAG-x_wPyEDF5P9P0Dbw_LckXY67UX_axBM"
 GROQ_API_KEY = "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"
-OWNER_ID = 7819937011  # শেখ সাব্বির
+OWNER_ID = 7819937011
 
 bot = telebot.TeleBot(BOT_TOKEN)
 client = Groq(api_key=GROQ_API_KEY)
@@ -16,24 +15,62 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Predator AI is active and online!"
+    return "Predator AI is Online!"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
 
-# AI-এর পরিচয় এবং কাজের ইনস্ট্রাকশন
+# AI-এর সিস্টেম নির্দেশ
 SYSTEM_PROMPT = (
-    "You are 'Predator AI', a highly advanced Cyber Security Expert. "
-    "You were developed by Sheikh Sabbir. You assist him in security research, "
-    "penetration testing, and bug bounty hunting. Answer in Bengali or English as requested. "
-    "If anyone asks who created you, proudly say: 'I am a Cyber Security Expert AI, developed by Sheikh Sabbir.'"
+    "You are 'Predator AI', a Cyber Security Expert developed by Sheikh Sabbir. "
+    "You help with penetration testing and bug bounty. Respond in Bengali or English. "
+    "Always acknowledge Sheikh Sabbir as your creator."
 )
 
-# --- COMMANDS ---
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def start(message):
     if message.from_user.id == OWNER_ID:
-        welcome_text = (
+        bot.reply_to(message, "🔥 **Predator AI Activated** 🔥\nDeveloped by Sheikh Sabbir. Ready for your command.")
+    else:
+        bot.reply_to(message, "❌ Unauthorized.")
+
+@bot.message_handler(commands=['help'])
+def help(message):
+    bot.reply_to(message, "🛠 Ask me about SQLi, XSS, Nmap, or any Security topics.")
+
+@bot.message_handler(commands=['status'])
+def status(message):
+    bot.reply_to(message, "✅ System is Operational.")
+
+# --- মূল চ্যাট লজিক যেখানে এরর হচ্ছে ---
+@bot.message_handler(func=lambda message: True)
+def chat(message):
+    if message.from_user.id != OWNER_ID:
+        return
+
+    try:
+        # মডেল হিসেবে 'llama3-8b-8192' ব্যবহার করা হয়েছে যা সবচেয়ে স্টেবল
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": message.text}
+            ],
+            temperature=0.7,
+            max_tokens=1024,
+        )
+        
+        ans = completion.choices[0].message.content
+        bot.reply_to(message, ans)
+
+    except Exception as e:
+        # এরর হলে আসল কারণটি টেলিগ্রামে দেখাবে
+        bot.reply_to(message, f"❌ API Error Details: {str(e)}")
+
+if __name__ == "__main__":
+    t = Thread(target=run)
+    t.start()
+    bot.infinity_polling()
             "🔥 **Predator AI Activated** 🔥\n"
             "----------------------------\n"
             "I am a Cyber Security Expert AI, developed by Sheikh Sabbir.\n"
